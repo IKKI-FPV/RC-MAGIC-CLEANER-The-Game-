@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <title>RC Magic Cleaner - Missione Pulizia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #00205b;
+            color: #00205b; 
+        }
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .game-container {
+            border: 4px solid #ffffff;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.4), inset 0 0 20px rgba(0,0,0,0.5);
+            background-color: #f0f0f0;
+            transition: opacity 0.5s ease-in-out;
+            border-radius: 20px;
+            position: relative;
+        }
+        #game-header {
+            border-bottom: 4px solid #ce2b37;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .pixel-button {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #0055d4;
+            color: #ffffff;
+            border: 4px solid #00205b;
+            box-shadow: 4px 4px 0px #00205b;
+            transition: all 0.1s ease-in-out;
+            image-rendering: pixelated;
+        }
+        .pixel-button:hover, .pixel-button:focus {
+            background-color: #2176ff;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #00205b;
+        }
+        .pixel-button:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
+        }
+        .cta-button {
+            background-color: #009246;
+            border-color: #00632f;
+            box-shadow: 4px 4px 0px #00632f;
+        }
+        .cta-button:hover, .cta-button:focus {
+            background-color: #00ab52;
+            box-shadow: 2px 2px 0px #00632f;
+        }
+        .scene-image { animation: bounce-in 0.5s ease; }
+        .status-icons img { filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); }
+        .dialogue-box { border: 4px solid #0055d4; background: rgba(255,255,255,0.6); }
+        .hidden { display: none; }
+        .fade-out { opacity: 0; }
+        .correct-choice { animation: flash-green 0.6s ease-out; }
+        .wrong-choice { animation: shake-red 0.6s ease-in-out; }
+        #resellers-list { -webkit-overflow-scrolling: touch; }
+        #resellers-list a { transition: all 0.2s ease; display: block; padding: 4px; border-radius: 5px; }
+        #resellers-list a:hover { background-color: rgba(0, 85, 212, 0.1); color: #0055d4; }
+        .star-animation { animation: pulse-star 1.5s infinite; display: inline-block; }
+        
+        #dirt-overlay {
+            background-image: 
+                radial-gradient(circle at 15% 25%, rgba(80, 53, 20, 0.75) 30px, transparent 32px),
+                radial-gradient(circle at 80% 10%, rgba(80, 53, 20, 0.85) 40px, transparent 42px),
+                radial-gradient(circle at 90% 85%, rgba(80, 53, 20, 0.8) 28px, transparent 30px),
+                radial-gradient(circle at 50% 50%, rgba(80, 53, 20, 0.7) 50px, transparent 52px),
+                radial-gradient(circle at 5% 90%, rgba(80, 53, 20, 0.75) 25px, transparent 27px),
+                radial-gradient(circle at 30% 75%, rgba(80, 53, 20, 0.7) 45px, transparent 47px),
+                radial-gradient(circle at 65% 35%, rgba(80, 53, 20, 0.9) 32px, transparent 34px),
+                radial-gradient(circle at 5% 5%, rgba(80, 53, 20, 0.75) 28px, transparent 30px),
+                radial-gradient(circle at 25% 10%, rgba(0, 80, 20, 0.6) 22px, transparent 24px),
+                radial-gradient(circle at 70% 90%, rgba(0, 80, 20, 0.65) 35px, transparent 37px),
+                radial-gradient(circle at 95% 40%, rgba(0, 80, 20, 0.7) 18px, transparent 20px),
+                radial-gradient(circle at 40% 95%, rgba(0, 80, 20, 0.6) 28px, transparent 30px);
+            background-size: cover;
+            mix-blend-mode: multiply;
+        }
+        #audio-controls {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-icon { cursor: pointer; }
+        
+        #settings-panel {
+            position: absolute;
+            background: rgba(240, 240, 240, 0.95);
+            border: 4px solid #00205b;
+            border-radius: 10px;
+            padding: 1rem;
+            top: 50px;
+            right: 15px;
+            width: 200px;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #0055d4;
+            cursor: pointer;
+            margin-top: -8px; 
+            border: 2px solid #00205b;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #00205b;
+            border-radius: 5px;
+        }
+        .lang-tab {
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 5px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .lang-tab.active {
+            background-color: #0055d4;
+            color: white;
+            border-color: #00205b;
+        }
+        .lang-tab:not(.active):hover {
+            background-color: rgba(0, 85, 212, 0.1);
+            color: #0055d4;
+        }
+        #player-counter {
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
+            font-size: 1.25rem;
+            font-family: 'Press Start 2P', cursive;
+            color: #00205b;
+            text-shadow: 1px 1px #fff;
+        }
+
+        @keyframes bounce-in { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes flash-green { 0%, 100% { border-color: #ffffff; } 50% { border-color: #009246; box-shadow: 0 0 35px 15px rgba(0, 146, 70, 0.8), inset 0 0 20px rgba(0,0,0,0.5); } }
+        @keyframes shake-red { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } 50% { border-color: #ce2b37; } }
+        @keyframes pulse-star { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <audio id="background-music" loop preload="auto"></audio>
+    <audio id="intro-music" preload="auto"></audio>
+
+    <div id="game-container" class="game-container w-full max-w-2xl mx-auto rounded-lg p-6">
+        
+        <div id="audio-controls" class="hidden">
+            <div id="music-control" class="control-icon">
+                <svg id="music-on-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00205b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <svg id="music-off-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00205b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            </div>
+            <div id="sfx-control" class="control-icon">
+                <svg id="sfx-on-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00205b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                <svg id="sfx-off-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00205b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+            </div>
+            <div id="settings-control" class="control-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00205b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </div>
+             <!-- NUOVI PULSANTI SHORTCUT -->
+            <div id="resellers-shortcut-button" class="control-icon" title="Rivenditori">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00205b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            </div>
+            <a href="mailto:ikkisolutions@gmail.com" id="email-shortcut-button" class="control-icon" title="Contatta IKKI SOLUTIONS">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00205b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>
+            </a>
+        </div>
+        <div id="settings-panel" class="hidden">
+            <label for="music-volume" class="text-sm">Musica</label>
+            <input type="range" id="music-volume" min="0" max="1" step="0.1" value="0.5">
+            <label for="sfx-volume" class="text-sm mt-2 block">Effetti</label>
+            <input type="range" id="sfx-volume" min="0" max="1" step="0.1" value="0.8">
+        </div>
+
+        <div id="game-header" class="text-center">
+            <img id="logo-image" alt="RC Magic Cleaner Logo by IKKI SOLUTIONS" class="mx-auto h-20 object-contain">
+        </div>
+        
+        <div id="lang-selection-screen">
+            <div class="text-center my-16">
+                <p class="text-2xl mb-6">Seleziona la lingua / Select language</p>
+                <div class="flex justify-center gap-4">
+                    <button id="lang-it-button" class="pixel-button p-4 text-lg">ITALIANO</button>
+                    <button id="lang-en-button" class="pixel-button p-4 text-lg">ENGLISH</button>
+                </div>
+            </div>
+            <div id="player-counter"></div>
+        </div>
+
+        <div id="splash-screen" class="relative hidden">
+            <div id="dirt-overlay" class="absolute inset-0 pointer-events-none transition-opacity duration-500 rounded-2xl" style="opacity: 0;"></div>
+            <div id="countdown-timer" class="absolute -top-4 right-2 text-5xl text-red-600" style="font-family: 'Press Start 2P'; text-shadow: 2px 2px #000;">10</div>
+            <div class="text-center my-16">
+                <img id="splash-image" alt="RC Magic Cleaner" class="mx-auto h-40 object-contain">
+            </div>
+            <button id="splash-button" class="pixel-button w-full text-lg p-4 mt-6">CLICCA PER INIZIARE</button>
+        </div>
+
+        <div id="start-screen" class="hidden">
+            <p id="player-name-prompt" class="text-center text-xl my-4"></p>
+            <input type="text" id="player-name-input" class="w-full p-2 text-2xl text-center bg-gray-200 border-2 border-gray-400 rounded text-black placeholder-gray-500">
+            <button id="start-button" class="pixel-button w-full text-lg p-4 mt-6"></button>
+        </div>
+
+        <div id="model-selection-screen" class="hidden">
+            <p id="model-select-prompt" class="text-center text-xl my-4"></p>
+            <div id="model-options" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <button data-model="car" class="pixel-button p-4 text-lg flex flex-col items-center gap-2"></button>
+                <button data-model="drone" class="pixel-button p-4 text-lg flex flex-col items-center gap-2"></button>
+                <button data-model="boat" class="pixel-button p-4 text-lg flex flex-col items-center gap-2"></button>
+            </div>
+        </div>
+
+        <div id="main-game-screen" class="hidden">
+            <div id="status-bar" class="flex justify-between items-center mb-4 p-2 border-b-4 border-gray-300">
+                <h2 id="player-name-display" class="text-2xl"></h2>
+                <div id="cans-container" class="flex gap-2 status-icons"></div>
+            </div>
+            <div id="scene-image" class="scene-image text-center my-6 h-40 flex items-center justify-center"></div>
+            <div id="dialogue-box" class="dialogue-box p-4 rounded-md min-h-[100px] text-xl">
+                <p id="dialogue-text"></p>
+            </div>
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6"></div>
+        </div>
+        
+        <div id="game-over-screen" class="hidden text-center">
+            <h1 id="game-over-title" class="text-5xl mb-6 text-blue-800" style="font-family: 'Press Start 2P'"></h1>
+            <div id="victory-image" class="hidden my-6"></div>
+            <p id="game-over-text" class="text-2xl mb-8"></p>
+            <button id="restart-button" class="pixel-button w-full text-lg p-4"></button>
+            <button id="cta-button" class="pixel-button cta-button w-full text-lg p-4 mt-4 hidden"></button>
+        </div>
+
+        <div id="resellers-screen" class="hidden text-left">
+            <h2 id="resellers-title" class="text-3xl text-center mb-4">
+                <span class="star-animation">⭐</span> <span class="resellers-title-text"></span> <span class="star-animation">⭐</span>
+            </h2>
+            <div id="resellers-list" class="text-lg mb-6 max-h-48 overflow-y-auto pr-2"></div>
+            <div id="lang-tabs" class="flex flex-wrap gap-2 text-sm justify-center mb-2"></div>
+            <div id="lang-content" class="text-sm border-t-2 border-gray-300 pt-2"></div>
+            <a id="email-button" href="mailto:info@ikkisolutions.com" class="pixel-button cta-button w-full text-lg p-4 mt-4 text-center block"></a>
+            <button id="back-to-start-button" class="pixel-button w-full text-lg p-4 mt-4"></button>
+        </div>
+        
+    </div>
+
+    <script type="module">
+        // --- Link alle risorse su GitHub (usa raw link) ---
+        const assets = {
+            logo: "https://raw.githubusercontent.com/IKKI-FPV/RC-MAGIC-CLEANER-The-Game-/main/RC%20MAGIC%20CLEANER%20LOGO%20TRASPARENTE.png",
+            can: "https://raw.githubusercontent.com/IKKI-FPV/RC-MAGIC-CLEANER-The-Game-/main/rc-magic-cleaner%20200ml%20trasparente%201.png",
+            backgroundMusic: "https://raw.githubusercontent.com/IKKI-FPV/RC-MAGIC-CLEANER-The-Game-/main/scummvm.ogg",
+            introMusic: "https://raw.githubusercontent.com/IKKI-FPV/RC-MAGIC-CLEANER-The-Game-/main/SFSC.ogg"
+        };
+        
+        // --- Testi e Traduzioni ---
+        const translations = {
+            it: {
+                splashButton: "CLICCA PER INIZIARE",
+                playerNamePrompt: "Nome del Modellista:",
+                playerNamePlaceholder: "Top Driver",
+                modelSelectPrompt: "Che tipo di modello vuoi pulire?",
+                modelCar: "Auto",
+                modelDrone: "Drone",
+                modelBoat: "Barca",
+                startButton: "Inizia a Pulire!",
+                gameOverTitle: "Game Over",
+                victoryTitle: "Modello Perfetto!",
+                gameOverText: "Hai finito le bombolette!",
+                victoryText: "Missione compiuta!",
+                restartButton: "Ricomincia Missione",
+                ctaButton: "Acquista RC Magic Cleaner!",
+                resellersTitle: "I nostri rivenditori",
+                emailButton: "Contatta IKKI SOLUTIONS",
+                backToStartButton: "Torna al Gioco",
+                descTitle: "Descrizione",
+                warnTitle: "Avvertenze d'uso:",
+                descContent: "Creato dalla passione per il modellismo, ideale per la pulizia di tutti i modelli radiocomandati. Rimuove con facilità ogni tipo di sporco, come polvere, fango/terra ed erba grazie alla schiuma attiva. Perfetto su materiali stampati in 3D come ABS, PLA, PETG, radiocomandi, action cam e tutte le lenti per FPV. Non unge e non lascia aloni, le tue plastiche, carbonio o metalli, torneranno a risplendere. La formula specifica è stata studiata per non intaccare i motori e le parti elettriche (non alimentate durante l’uso). Non crea ossido, non lascia residui ed evapora in tempi brevi. Respinge lo sporco e la polvere.",
+                warnContent: "Rimuovere la batteria. Agitare bene e spruzzare da 10cm. Attendere la totale evaporazione prima di ricollegare le batterie. Non usare su motore caldo. Dopo l’applicazione, tamponare con un panno asciutto. Per un miglior risultato usare una spazzola e aria compressa.",
+                playerCounter: "Partite Giocate: "
+            },
+            en: {
+                splashButton: "CLICK TO START",
+                playerNamePrompt: "Modeler's Name:",
+                playerNamePlaceholder: "Top Driver",
+                modelSelectPrompt: "What kind of model do you want to clean?",
+                modelCar: "Car",
+                modelDrone: "Drone",
+                modelBoat: "Boat",
+                startButton: "Start Cleaning!",
+                gameOverTitle: "Game Over",
+                victoryTitle: "Model Perfect!",
+                gameOverText: "You ran out of cans!",
+                victoryText: "Mission accomplished!",
+                restartButton: "Restart Mission",
+                ctaButton: "Buy RC Magic Cleaner!",
+                resellersTitle: "Our Resellers",
+                emailButton: "Contact IKKI SOLUTIONS",
+                backToStartButton: "Back to Game",
+                descTitle: "Description",
+                warnTitle: "Usage warnings:",
+                descContent: "Created from the passion for model making, ideal for cleaning all remote control models. Easily removes all types of dirt, such as dust, mud/earth and grass, thanks to the active foam. Perfect for 3D printed materials such as ABS, PLA, PETG, remote controls, action cameras and all kinds of lenses for FPV. It is not greasy and does not leave streaks. Your plastic, carbon or metal materials will shine again. The specific formula has been designed to avoid any damage to the motors and any electrical parts (which must not be powered during use). It does not create oxide, leaves no residues and evaporates quickly. It repels dirt and dust.",
+                warnContent: "Remove the battery before and during cleaning. Shake well and spray at a distance of at least 10cm. Wait for complete evaporation before reconnecting batteries. Do not use on a hot engine. After application, dab with a dry cloth. For best results we recommend a brush and an air compressor.",
+                playerCounter: "Games Played: "
+            },
+            fr: {
+                descTitle: "Description",
+                warnTitle: "Avertissements:",
+                descContent: "Créé par passion pour le modélisme, idéal pour le nettoyage de tous les modèles radiocommandés. Élimine facilement tout type de saleté, comme la poussière, la boue/terre et l'herbe grazie à sa mousse active. Parfait sur les matériaux imprimés en 3D come l'ABS, le PLA, le PETG, les radiocommandes, les action cams et toutes les lentilles pour FPV. Ne graisse pas et ne laisse pas de traces. Vos plastiques, carbone ou métaux brilleront à nouveau. La formule spécifique est conçue pour ne pas endommager les moteurs et les parties électriques (non alimentées pendant l'utilisation). Ne crée pas d'oxyde, ne laisse aucun résidu et s'évapore rapidement. Repousse la saleté et la poussière.",
+                warnContent: "Retirez la batterie. Bien agiter et vaporiser à 10cm. Attendre l'évaporation complète avant de reconnecter les batteries. Ne pas utiliser sur un moteur chaud. Après application, tamponner avec un chiffon sec. Pour de meilleurs résultats, utiliser une brosse et de l'air comprimé."
+            },
+            es: {
+                descTitle: "Descripción",
+                warnTitle: "Advertencias de uso:",
+                descContent: "Creado por la pasión por el modelismo, ideal para la limpieza de todos los modelos a radiocontrol. Elimina facilmente todo tipo di suciedad, como polvo, barro/tierra y hierba grazie a su espuma activa. Perfecto en materiales impresos en 3D como ABS, PLA, PETG, radiocontroles, cámaras de acción y todas las lentes para FPV. No engrasa y no deja marcas. Sus plásticos, carbono o metales volverán a brillar. La fórmula específica ha sido diseñada para no dañar los motores ni las partes eléctricas (que no deben estar alimentadas durante el uso). No crea óxido, no deja residuos y se evapora rápidamente. Repele la suciedad y el polvo.",
+                warnContent: "Retire la batería. Agitar bien y pulverizar desde 10cm. Esperar la evaporación total antes de volver a conectar las baterías. No usar en un motor caliente. Después de la aplicación, secar con un paño. Para mejores resultados, use un cepillo y aire comprimido."
+            },
+            de: {
+                descTitle: "Beschreibung",
+                warnTitle: "Warnhinweise:",
+                descContent: "Aus Leidenschaft für den Modellbau entwickelt, ideal für die Reinigung aller ferngesteuerten Modelle. Entfernt dank des Aktivschaums mühelos alle Arten von Schmutz wie Staub, Schlamm/Erde und Gras. Perfekt für 3D-gedruckte Materialien wie ABS, PLA, PETG, Fernbedienungen, Action-Kameras und alle FPV-Linsen. Fettfrei und streifenfrei. Ihre Kunststoff-, Carbon- oder Metallteile werden wieder glänzen. Die spezielle Formel wurde entwickelt, um Motoren und elektrische Teile (die während des Gebrauchs nicht mit Strom versorgt werden dürfen) nicht zu beschädigen. Bildet kein Oxid, hinterlässt keine Rückstände und verdunstet schnell. Weist Schmutz und Staub ab.",
+                warnContent: "Entfernen Sie die Batterie. Gut schütteln und aus 10cm Entfernung sprühen. Warten Sie die vollständige Verdunstung ab, bevor Sie die Batterien wieder anschließen. Nicht auf heißem Motor anwenden. Nach der Anwendung mit einem trockenen Tuch abtupfen. Für beste Ergebnisse verwenden Sie eine Bürste und Druckluft."
+            },
+            pt: {
+                descTitle: "Descrição",
+                warnTitle: "Avisos de uso:",
+                descContent: "Criado a partir da paixão pelo modelismo, ideal para a limpeza de todos os modelos de controle remoto. Remove facilmente todos os tipos de sujeira, como poeira, lama/terra e grama, graças à espuma ativa. Perfeito em materiais impressos em 3D como ABS, PLA, PETG, controles remotos, câmeras de ação e todas as lentes para FPV. Não é gorduroso e não deixa manchas. Seus materiais de plástico, carbono ou metal voltarão a brilhar. A fórmula específica foi projetada para não danificar os motores e as partes elétricas (que não devem ser alimentadas durante o uso). Não cria óxido, non lascia resíduos e evapora rapidamente. Repele sujeira e poeira.",
+                warnContent: "Remova a bateria. Agite bem e borrife a 10cm de distância. Aguarde a evaporação completa antes de reconectar as baterias. Não use em motor quente. Após a aplicação, seque com um pano. Para melhores resultados, use uma escova e ar comprimido."
+            }
+        };
+
+        let currentLanguage = 'it';
+
+        // --- Elementi del DOM ---
+        const langSelectionScreen = document.getElementById('lang-selection-screen');
+        const langItButton = document.getElementById('lang-it-button');
+        const langEnButton = document.getElementById('lang-en-button');
+        const splashScreen = document.getElementById('splash-screen');
+        const splashButton = document.getElementById('splash-button');
+        const splashImage = document.getElementById('splash-image');
+        const dirtOverlay = document.getElementById('dirt-overlay');
+        const countdownTimer = document.getElementById('countdown-timer');
+        const startScreen = document.getElementById('start-screen');
+        const modelSelectionScreen = document.getElementById('model-selection-screen');
+        const modelSelectPrompt = document.getElementById('model-select-prompt');
+        const modelOptions = document.getElementById('model-options');
+        const mainGameScreen = document.getElementById('main-game-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const resellersScreen = document.getElementById('resellers-screen');
+        const gameContainer = document.getElementById('game-container');
+        const victoryImage = document.getElementById('victory-image');
+        const ctaButton = document.getElementById('cta-button');
+        const resellersList = document.getElementById('resellers-list');
+        const backToStartButton = document.getElementById('back-to-start-button');
+        const backgroundMusic = document.getElementById('background-music');
+        const introMusic = document.getElementById('intro-music');
+        const logoImage = document.getElementById('logo-image');
+        const playerNameInput = document.getElementById('player-name-input');
+        const playerNamePrompt = document.getElementById('player-name-prompt');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const playerNameDisplay = document.getElementById('player-name-display');
+        const cansContainer = document.getElementById('cans-container');
+        const sceneImage = document.getElementById('scene-image');
+        const dialogueText = document.getElementById('dialogue-text');
+        const optionsContainer = document.getElementById('options-container');
+        const gameOverTitle = document.getElementById('game-over-title');
+        const gameOverText = document.getElementById('game-over-text');
+        const audioControls = document.getElementById('audio-controls');
+        const musicControl = document.getElementById('music-control');
+        const sfxControl = document.getElementById('sfx-control');
+        const settingsControl = document.getElementById('settings-control');
+        const musicOnIcon = document.getElementById('music-on-icon');
+        const musicOffIcon = document.getElementById('music-off-icon');
+        const sfxOnIcon = document.getElementById('sfx-on-icon');
+        const sfxOffIcon = document.getElementById('sfx-off-icon');
+        const settingsPanel = document.getElementById('settings-panel');
+        const musicVolumeSlider = document.getElementById('music-volume');
+        const sfxVolumeSlider = document.getElementById('sfx-volume');
+        const langTabsContainer = document.getElementById('lang-tabs');
+        const langContentContainer = document.getElementById('lang-content');
+        const playerCounterElement = document.getElementById('player-counter');
+        const resellersShortcutButton = document.getElementById('resellers-shortcut-button');
+        const allScreens = [splashScreen, startScreen, mainGameScreen, gameOverScreen, resellersScreen, langSelectionScreen, modelSelectionScreen];
+        
+        // --- Inizializzazione Risorse ---
+        logoImage.src = assets.logo;
+        splashImage.src = assets.can;
+        backgroundMusic.src = assets.backgroundMusic;
+        introMusic.src = assets.introMusic;
+        
+        // --- Motore Audio (per SFX) ---
+        let audioCtx;
+        let isAudioInitialized = false;
+        let countdownInterval = null;
+        let sfxGainNode;
+        let isMusicMuted = false;
+        let isSfxMuted = false;
+
+        function initAudio() { 
+            if (isAudioInitialized) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            sfxGainNode = audioCtx.createGain();
+            sfxGainNode.gain.value = sfxVolumeSlider.value;
+            sfxGainNode.connect(audioCtx.destination);
+            isAudioInitialized = true;
+        }
+
+        function playNote(frequency, duration, type = 'sine', volume = 1.0) {
+            if (!audioCtx || audioCtx.state === 'suspended' || isSfxMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(sfxGainNode);
+            osc.type = type;
+            osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration / 1000);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration / 1000);
+        }
+        const sounds = {
+            typing: () => playNote(1500, 50, 'square', 0.5),
+            success: () => { playNote(523, 80, 'square'); setTimeout(() => playNote(659, 80, 'square'), 90); setTimeout(() => playNote(784, 150, 'square'), 180); },
+            failure: () => { playNote(164, 400, 'sawtooth'); },
+            intro: () => { playNote(392, 100, 'triangle'); setTimeout(() => playNote(523, 100, 'triangle'), 120); setTimeout(() => playNote(659, 250, 'triangle'), 240); },
+            victory: () => { let d=0; [523,587,659,698,784,880,1046].forEach((n,i,a) => { setTimeout(() => playNote(n, i===a.length-1?400:100, 'sawtooth'), d); d+=110; }); }
+        };
+
+        // --- Stato del Gioco ---
+        let gameState = { playerName: '', cans: 3, currentScene: 'intro', modelType: 'car' };
+        
+        const SVGs = {
+            car: `<svg viewBox="0 0 100 60" width="140" height="84"><path d="M95,33 H87 L82,23 H18 L13,33 H5 C2,33 2,30 5,30 H13 L15,28 H85 L87,30 H95 C98,30 98,33 95,33 Z" fill="#333" /><path d="M92,35 H8 C5,35 5,38 8,38 H92 C95,38 95,35 92,35 Z" fill="#222" /><path d="M85,28 H15 L18,23 H82 Z" fill="#D50000" /><path d="M13,33 L8,38 H92 L87,33 Z" fill="#C50000" /><circle cx="20" cy="41" r="9" fill="#222" /><circle cx="20" cy="41" r="5" fill="#555" /><circle cx="80" cy="41" r="9" fill="#222" /><circle cx="80" cy="41" r="5" fill="#555" /><path d="M15,28 H10 V25 H15 Z" fill="#FFC107" /><path d="M85,28 H90 V25 H85 Z" fill="#FFC107" /></svg>`,
+            drone: `<svg viewBox="0 0 100 100" width="120" height="120"><g transform="translate(50 50) rotate(45)"><path d="M-10,0 H10 V5 H25 V15 H10 V20 H-10 V15 H-25 V5 H-10 Z" fill="#333" /><circle cx="0" cy="0" r="8" fill="#D50000" /><circle cx="35" cy="-35" r="10" fill="#222" /><path d="M35,-42 H30 V-28 H40 V-42 Z M35,-28 H30 V-42 H40 V-28 Z" fill="#555" transform="rotate(45 35 -35)" /><circle cx="-35" cy="-35" r="10" fill="#222" /><path d="M-35,-42 H-40 V-28 H-30 V-42 Z M-35,-28 H-40 V-42 H-30 V-28 Z" fill="#555" transform="rotate(45 -35 -35)" /><circle cx="35" cy="35" r="10" fill="#222" /><path d="M35,28 H30 V42 H40 V28 Z M35,42 H30 V28 H40 V42 Z" fill="#555" transform="rotate(45 35 35)" /><circle cx="-35" cy="35" r="10" fill="#222" /><path d="M-35,28 H-40 V42 H-30 V28 Z M-35,42 H-40 V28 H-30 V42 Z" fill="#555" transform="rotate(45 -35 35)" /></g></svg>`,
+            boat: `<svg viewBox="0 0 100 60" width="150" height="90"><path d="M5,30 C10,15 90,15 95,30 L85,50 H15 Z" fill="#0055d4" /><path d="M15,50 H85 L80,30 H20 Z" fill="#0044aa" /><rect x="10" y="25" width="80" height="5" rx="2" fill="#fff" /><rect x="40" y="15" width="20" height="10" fill="#fff" /><path d="M50,15 V5" stroke="#333" stroke-width="2" /></svg>`,
+            carDirty: `<svg viewBox="0 0 100 60" width="140" height="84"><path d="M95,33 H87 L82,23 H18 L13,33 H5 C2,33 2,30 5,30 H13 L15,28 H85 L87,30 H95 C98,30 98,33 95,33 Z" fill="#333" /><path d="M92,35 H8 C5,35 5,38 8,38 H92 C95,38 95,35 92,35 Z" fill="#222" /><path d="M85,28 H15 L18,23 H82 Z" fill="#D50000" /><path d="M13,33 L8,38 H92 L87,33 Z" fill="#C50000" /><circle cx="20" cy="41" r="9" fill="#222" /><circle cx="20" cy="41" r="5" fill="#555" /><circle cx="80" cy="41" r="9" fill="#222" /><circle cx="80" cy="41" r="5" fill="#555" /><path d="M15,28 H10 V25 H15 Z" fill="#FFC107" /><path d="M85,28 H90 V25 H85 Z" fill="#FFC107" /><circle cx="25" cy="25" r="15" fill="rgba(121, 85, 72, 0.6)" /><circle cx="70" cy="35" r="20" fill="rgba(121, 85, 72, 0.7)" /><circle cx="50" cy="20" r="10" fill="rgba(106, 27, 27, 0.5)" /></svg>`,
+            engineGreasy: `<svg viewBox="0 0 100 100" width="120" height="120"><rect x="10" y="10" width="80" height="80" rx="5" fill="#444" /><rect x="20" y="20" width="60" height="20" fill="#555" /><rect x="20" y="50" width="60" height="20" fill="#555" /><circle cx="35" cy="60" r="8" fill="#666" /><circle cx="65" cy="60" r="8" fill="#666" /><path d="M10,40 h80" stroke="#333" stroke-width="4" /><path d="M15,15 L25,25" stroke="rgba(50,50,50,0.8)" stroke-width="8" stroke-linecap="round" /><path d="M80,70 L90,80" stroke="rgba(50,50,50,0.7)" stroke-width="12" stroke-linecap="round" /><path d="M40,55 L50,65" stroke="rgba(40,40,40,0.9)" stroke-width="10" stroke-linecap="round" /></svg>`,
+            wheelsDirty: `<svg viewBox="0 0 100 100" width="120" height="120"><circle cx="50" cy="50" r="45" fill="#333" /><circle cx="50" cy="50" r="20" fill="#555" /><path d="M50,5 L50,95 M5,50 L95,50 M18,18 L82,82 M18,82 L82,18" stroke="#444" stroke-width="8" /><path d="M10,20 C30,10 40,30 50,25" stroke="rgba(121, 85, 72, 0.8)" stroke-width="15" fill="none" stroke-linecap="round" /><path d="M80,85 C70,95 60,75 55,70" stroke="rgba(121, 85, 72, 0.7)" stroke-width="12" fill="none" stroke-linecap="round" /></svg>`,
+            carClean: `<svg viewBox="0 0 100 60" width="140" height="84"><path d="M95,33 H87 L82,23 H18 L13,33 H5 C2,33 2,30 5,30 H13 L15,28 H85 L87,30 H95 C98,30 98,33 95,33 Z" fill="#333" /><path d="M92,35 H8 C5,35 5,38 8,38 H92 C95,38 95,35 92,35 Z" fill="#222" /><path d="M85,28 H15 L18,23 H82 Z" fill="#D50000" /><path d="M13,33 L8,38 H92 L87,33 Z" fill="#C50000" /><circle cx="20" cy="41" r="9" fill="#222" /><circle cx="20" cy="41" r="5" fill="#DDD" /><circle cx="80" cy="41" r="9" fill="#222" /><circle cx="80" cy="41" r="5" fill="#DDD" /><path d="M15,28 H10 V25 H15 Z" fill="#FFC107" /><path d="M85,28 H90 V25 H85 Z" fill="#FFC107" /><path d="M20,15 L25,20" stroke="white" stroke-width="3" stroke-linecap="round" /><path d="M15,18 L20,23" stroke="white" stroke-width="2" stroke-linecap="round" /></svg>`,
+            electronics: `<svg viewBox="0 0 100 100" width="120" height="120"><rect x="5" y="5" width="90" height="90" rx="5" fill="#004D40" /><rect x="20" y="20" width="60" height="60" fill="#222" /><path d="M20,50 h60 M50,20 v60" stroke="#009688" stroke-width="2" /><circle cx="35" cy="35" r="5" fill="#757575"/><circle cx="65" cy="35" r="5" fill="#757575"/><circle cx="35" cy="65" r="5" fill="#757575"/><circle cx="65" cy="65" r="5" fill="#757575"/><path d="M10,15 L20,20 M15,10 L20,20" stroke="rgba(200,200,200,0.5)" stroke-width="1" /></svg>`,
+            lens: `<svg viewBox="0 0 100 100" width="120" height="120"><circle cx="50" cy="50" r="45" fill="#222" /><circle cx="50" cy="50" r="35" fill="url(#lensGradient)" /><radialGradient id="lensGradient"><stop offset="0%" stop-color="#81D4FA" /><stop offset="100%" stop-color="#0D47A1" /></radialGradient><path d="M30,30 C40,25 60,35 70,30" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="5" stroke-linecap="round" /></svg>`,
+            '3dparts': `<svg viewBox="0 0 100 100" width="120" height="120"><path d="M20,80 L50,20 L80,80 Z" fill="#FFC107" stroke="#333" stroke-width="2" /><path d="M20,80 H80" stroke="#333" stroke-width="4" /><path d="M5,85 H95" stroke="#555" stroke-width="6" /><path d="M25,75 L30,80" stroke="rgba(121, 85, 72, 0.7)" stroke-width="4" stroke-linecap="round" /><path d="M70,70 L75,75" stroke="rgba(121, 85, 72, 0.6)" stroke-width="3" stroke-linecap="round" /></svg>`,
+            shield: `<svg viewBox="0 0 100 100" width="120" height="120"><path d="M50,10 L90,30 V60 C90,85 50,95 50,95 C50,95 10,85 10,60 V30 Z" fill="#009246" /><path d="M50,10 L90,30 V60 C90,85 50,95 50,95 C50,95 10,85 10,60 V30 Z" stroke="#fff" stroke-width="4" fill="none" /><path d="M35,50 L45,60 L65,40" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>`,
+            droneClean: `<svg viewBox="0 0 100 100" width="120" height="120"><g transform="translate(50 50) rotate(45)"><path d="M-10,0 H10 V5 H25 V15 H10 V20 H-10 V15 H-25 V5 H-10 Z" fill="#eee" /><circle cx="0" cy="0" r="8" fill="#0055d4" /><circle cx="35" cy="-35" r="10" fill="#222" /><path d="M35,-42 H30 V-28 H40 V-42 Z M35,-28 H30 V-42 H40 V-28 Z" fill="#ddd" transform="rotate(45 35 -35)" /><circle cx="-35" cy="-35" r="10" fill="#222" /><path d="M-35,-42 H-40 V-28 H-30 V-42 Z M-35,-28 H-40 V-42 H-30 V-28 Z" fill="#ddd" transform="rotate(45 -35 -35)" /><circle cx="35" cy="35" r="10" fill="#222" /><path d="M35,28 H30 V42 H40 V28 Z M35,42 H30 V28 H40 V42 Z" fill="#ddd" transform="rotate(45 35 35)" /><circle cx="-35" cy="35" r="10" fill="#222" /><path d="M-35,28 H-40 V42 H-30 V28 Z M-35,42 H-40 V28 H-30 V42 Z" fill="#ddd" transform="rotate(45 -35 35)" /></g><path d="M20,15 L25,20" stroke="#81D4FA" stroke-width="3" stroke-linecap="round" /><path d="M15,18 L20,23" stroke="#81D4FA" stroke-width="2" stroke-linecap="round" /></svg>`,
+            boatClean: `<svg viewBox="0 0 100 60" width="150" height="90"><path d="M5,30 C10,15 90,15 95,30 L85,50 H15 Z" fill="#0055d4" /><path d="M15,50 H85 L80,30 H20 Z" fill="#0044aa" /><rect x="10" y="25" width="80" height="5" rx="2" fill="#fff" /><rect x="40" y="15" width="20" height="10" fill="#fff" /><path d="M50,15 V5" stroke="#333" stroke-width="2" /><path d="M10,20 L15,25" stroke="white" stroke-width="3" stroke-linecap="round" /><path d="M18,18 L23,23" stroke="white" stroke-width="2" stroke-linecap="round" /></svg>`
+        };
+
+        const scenes_it = {
+            car: {
+                intro: { image: SVGs.carDirty, dialogue: (name) => `Ciao ${name}! La tua auto è coperta di fango. È ora di farla brillare!`, options: [{ text: 'Accetto la sfida!', nextScene: 'mud' }] },
+                mud: { image: SVGs.carDirty, dialogue: () => 'Uno strato di fango secco copre la carrozzeria. Qual è il primo passo?', options: [ { text: 'Uso un panno asciutto', outcome: 'failure', message: 'Pessima idea! Il fango secco graffia la vernice.' }, { text: 'Spruzzo subito il Cleaner', outcome: 'failure', message: 'Efficace, ma uno spreco! Togliere il grosso prima fa risparmiare prodotto.' }, { text: 'Risciacquo con acqua', outcome: 'success', nextScene: 'grease' } ] },
+                grease: { image: SVGs.engineGreasy, dialogue: () => 'Tolto il fango, il motore è incrostato di grasso oleoso. Che fai?', options: [ { text: 'Spruzzo RC MAGIC CLEANER', outcome: 'success', nextScene: 'electronics' }, { text: 'Uso acqua e sapone', outcome: 'failure', message: 'L\'acqua non scioglie il grasso e rischi di danneggiare l\'elettronica!' }, { text: 'Raschio con un cacciavite', outcome: 'failure', message: 'Danneggi le parti! Il modellismo richiede delicatezza... e il prodotto giusto.' } ] },
+                electronics: { image: SVGs.electronics, dialogue: () => 'L\'elettronica (ESC, ricevente) è impolverata. Come la tratti?', options: [ { text: 'Aria compressa forte', outcome: 'failure', message: 'Troppo aggressiva! Potresti staccare qualche componente delicato.'}, { text: 'Spruzzo leggero di Cleaner', outcome: 'success', nextScene: 'lens' }, { text: 'La lascio sporca', outcome: 'failure', message: 'La polvere può causare surriscaldamenti e falsi contatti. Meglio pulire!' } ] },
+                lens: { image: SVGs.wheelsDirty, dialogue: () => 'Le ruote sono piene di terra e i cerchi opachi. Come li pulisci?', options: [ { text: 'Cleaner e una spazzola', outcome: 'success', nextScene: '3dparts'}, { text: 'Li lascio così', outcome: 'failure', message: 'Le ruote pulite migliorano le prestazioni e l\'aspetto!' }, { text: 'Solo acqua', outcome: 'failure', message: 'L\'acqua non basta per togliere il grasso dai cerchi.' } ] },
+                '3dparts': { image: SVGs['3dparts'], dialogue: () => 'Le parti stampate in 3D (paraurti) sono sporche. Cosa usi?', options: [ { text: 'Alcool o acetone', outcome: 'failure', message: 'L\'acetone scioglie l\'ABS e l\'alcool può indebolire il PLA! Troppo rischioso.'}, { text: 'Acqua calda', outcome: 'failure', message: 'Il calore deforma il PLA! E non scioglie lo sporco grasso.'}, { text: 'RC MAGIC CLEANER, ovviamente!', outcome: 'success', nextScene: 'shield' } ] },
+                shield: { image: SVGs.shield, dialogue: () => 'L\'auto è pulita! Ultimo tocco: come la proteggi dalla prossima uscita?', options: [ { text: 'Niente, si risporcherà', outcome: 'failure', message: 'Un velo di protezione aiuta! RC Magic Cleaner ha un\'azione anti-polvere.'}, { text: 'Spruzzo leggero di Cleaner', outcome: 'success', nextScene: 'end' } ] },
+                end: { image: SVGs.carClean, isVictory: true, dialogue: (name) => `Missione compiuta, ${name}! La tua auto è perfetta, pulita e protetta. Sembra nuova!`, options: [] }
+            },
+            drone: {
+                intro: { image: SVGs.drone, dialogue: (name) => `Ciao ${name}! Il tuo drone è tornato sporco dall'ultimo volo. Puliamolo!`, options: [{ text: 'Inizia la pulizia!', nextScene: 'props' }] },
+                props: { image: SVGs.electronics, dialogue: () => "Le eliche sono piene di residui d'erba. Come le pulisci?", options: [{ text: 'Cleaner su un panno', outcome: 'success', nextScene: 'motors' }, { text: 'Grattarle con un utensile', outcome: 'failure', message: 'Così le sbilanci e le rovini! Le eliche sono delicate.' }, { text: 'Acqua direttamente sui motori', outcome: 'failure', message: 'Pessima idea! L\'acqua nei motori può causare un cortocircuito.' }] },
+                motors: { image: SVGs.engineGreasy, dialogue: () => "C'è polvere e sabbia fine dentro i motori. Cosa fai?", options: [{ text: 'RC Magic Cleaner ed Aria compressa', outcome: 'success', nextScene: 'frame' }, { text: 'Soffio con Aria Compressa', outcome: 'failure', message: "Non basta! lo sporco può rimanere negli avvolgimenti." }, { text: 'Lo ignoro, girano ancora', outcome: 'failure', message: 'La sabbia consuma i cuscinetti e riduce la vita del motore.' }] },
+                frame: { image: SVGs['3dparts'], dialogue: () => 'Il telaio in fibra di carbonio è impolverato e con ditate.', options: [{ text: 'Passata di RC Magic Cleaner', outcome: 'success', nextScene: 'electronics' }, { text: 'Un panno unto qualsiasi', outcome: 'failure', message: 'Lasceresti solo aloni e attireresti più polvere.' }, { text: 'Solo un po\' d\'acqua', outcome: 'failure', message: 'L\'acqua non sgrassa e lascia le macchie di calcare.' }] },
+                electronics: { image: SVGs.electronics, dialogue: () => 'La centralina di volo (FC) e gli ESC sono impolverati.', options: [{ text: 'Cleaner, spazzolina e aria leggera', outcome: 'success', nextScene: 'lens' }, { text: 'Cleaner spray diretto', outcome: 'failure', message: 'Troppo aggressivo! Rischieresti di danneggiare componenti sensibili.' }, { text: 'Strofinare forte con un panno', outcome: 'failure', message: 'Potresti staccare piccole resistenze o condensatori. Ci vuole delicatezza.' }] },
+                lens: { image: SVGs.lens, dialogue: () => 'La lente della camera FPV è opaca. Come la tratti?', options: [{ text: 'Cleaner su panno in microfibra', outcome: 'success', nextScene: 'shield' }, { text: 'La pulisco con la maglietta', outcome: 'failure', message: 'Così la righi! Le lenti richiedono un panno pulito e un prodotto adatto.' }, { text: 'Alcool isopropilico', outcome: 'failure', message: 'Può essere troppo aggressivo e rovinare i rivestimenti protettivi della lente.' }] },
+                shield: { image: SVGs.shield, dialogue: () => 'Il drone è pulito! Come lo prepari per il prossimo volo?', options: [{ text: 'Passata finale di Cleaner', outcome: 'success', nextScene: 'end' }, { text: 'Niente, tanto si risporca', outcome: 'failure', message: 'Un velo di protezione aiuta a non far attaccare lo sporco la prossima volta.' }] },
+                end: { image: SVGs.droneClean, isVictory: true, dialogue: (name) => `Missione compiuta, ${name}! Il tuo drone è pronto a volare, più efficiente e pulito che mai!`, options: [] }
+            },
+            boat: {
+                intro: { image: SVGs.boat, dialogue: (name) => `Ciao ${name}! La tua barca è piena di alghe e calcare. Facciamola tornare come nuova!`, options: [{ text: 'All\'arrembaggio!', nextScene: 'hull' }] },
+                hull: { image: SVGs.boat, dialogue: () => 'Lo scafo ha alghe e macchie d\'acqua salata. Come procedi?', options: [{ text: 'Risciacquo e poi Cleaner', outcome: 'success', nextScene: 'propeller' }, { text: 'Grattare con una spatola', outcome: 'failure', message: 'Rovineresti la vernice e il gelcoat dello scafo!' }, { text: 'Lasciare così', outcome: 'failure', message: 'Il sale è corrosivo e le alghe possono danneggiare la superficie.' }] },
+                propeller: { image: SVGs.electronics, dialogue: () => 'L\'elica è bloccata da piccole alghe filamentose.', options: [{ text: 'Le rimuovo a mano e pulisco', outcome: 'success', nextScene: 'electronics' }, { text: 'Accelero per liberarla', outcome: 'failure', message: 'Sforzeresti troppo il motore e l\'ESC, rischiando di bruciarli.' }, { text: 'Le taglio con un coltello', outcome: 'failure', message: 'Potresti facilmente graffiare o sbeccare l\'elica, sbilanciandola.' }] },
+                electronics: { image: SVGs.electronics, dialogue: () => 'Il vano dell\'elettronica è leggermente umido. Che fai?', options: [{ text: 'Asciugo e uso Magic Cleaner sui contatti', outcome: 'success', nextScene: 'deck' }, { text: 'Uso un phon al massimo', outcome: 'failure', message: 'Il calore eccessivo può danneggiare le saldature e i componenti.' }, { text: 'Ignoro l\'umidità', outcome: 'failure', message: 'L\'umidità porta all\'ossidazione e a malfunzionamenti.' }] },
+                deck: { image: SVGs.boat, dialogue: () => 'La coperta della barca in plastica è opaca per il sole e il sale.', options: [{ text: 'Passata di Magic Cleaner', outcome: 'success', nextScene: 'radio' }, { text: 'Cera per auto', outcome: 'failure', message: 'Renderebbe la superficie pericolosamente scivolosa!' }, { text: 'Olio lubrificante', outcome: 'failure', message: 'A parte lo scivolare, attireresti ancora più sporco.' }] },
+                radio: { image: SVGs.electronics, dialogue: () => 'La tua radio ha degli schizzi di acqua salata.', options: [{ text: 'Panno umido e poi Cleaner', outcome: 'success', nextScene: 'shield' }, { text: 'La immergo in acqua dolce', outcome: 'failure', message: 'Anche se è spenta, la immergeresti completamente! Disastro assicurato.' }, { text: 'Lascio che si asciughi da sola', outcome: 'failure', message: 'Il sale cristallizza e corrode i contatti interni.' }] },
+                shield: { image: SVGs.shield, dialogue: () => 'La barca è pulita e brillante! Come la proteggi?', options: [{ text: 'Leggera passata di Cleaner', outcome: 'success', nextScene: 'end' }, { text: 'La copro con un telo umido', outcome: 'failure', message: 'Il telo umido favorisce solo la formazione di muffe e calcare.' }] },
+                end: { image: SVGs.boatClean, isVictory: true, dialogue: (name) => `Missione compiuta, ${name}! La tua barca è pronta a sfrecciare sull\'acqua, protetta e splendente!`, options: [] }
+            }
+        };
+        const scenes_en = {
+            car: {
+                intro: { image: SVGs.carDirty, dialogue: (name) => `Hi ${name}! Your car is covered in mud. It's time to make it shine!`, options: [{ text: 'I accept the challenge!', nextScene: 'mud' }] },
+                mud: { image: SVGs.carDirty, dialogue: () => 'A layer of dry mud covers the bodywork. What is the first step?', options: [ { text: 'Use a dry cloth', outcome: 'failure', message: 'Bad idea! Dry mud will scratch the paint.' }, { text: 'Spray the Cleaner immediately', outcome: 'failure', message: 'Effective, but a waste! Removing the bulk first saves product.' }, { text: 'Rinse with water', outcome: 'success', nextScene: 'grease' } ] },
+                grease: { image: SVGs.engineGreasy, dialogue: () => 'Mud gone, but the engine is caked in oily grease. What now?', options: [ { text: 'Spray RC MAGIC CLEANER', outcome: 'success', nextScene: 'electronics' }, { text: 'Use soap and water', outcome: 'failure', message: "Water won't dissolve grease and you risk damaging the electronics!" }, { text: 'Scrape with a screwdriver', outcome: 'failure', message: "You'll damage the parts! Modeling requires gentleness... and the right product." } ] },
+                electronics: { image: SVGs.electronics, dialogue: () => 'The electronics (ESC, receiver) are dusty. How do you treat them?', options: [ { text: 'Strong compressed air', outcome: 'failure', message: 'Too aggressive! You might detach a delicate component.'}, { text: 'A light spray of Cleaner', outcome: 'success', nextScene: 'lens' }, { text: 'Leave it dirty', outcome: 'failure', message: 'Dust can cause overheating and bad connections. Better to clean it!' } ] },
+                lens: { image: SVGs.wheelsDirty, dialogue: () => 'The wheels are full of dirt and the rims are dull. How do you clean them?', options: [ { text: 'Cleaner and a brush', outcome: 'success', nextScene: '3dparts'}, { text: 'Leave them as they are', outcome: 'failure', message: 'Clean wheels improve performance and look!' }, { text: 'Just water', outcome: 'failure', message: 'Water is not enough to remove grease from the rims.' } ] },
+                '3dparts': { image: SVGs['3dparts'], dialogue: () => 'The 3D printed parts (bumpers) are dirty. What do you use?', options: [ { text: 'Alcohol or acetone', outcome: 'failure', message: 'Acetone melts ABS and alcohol can weaken PLA! Too risky.'}, { text: 'Hot water', outcome: 'failure', message: "Heat deforms PLA! And it doesn't dissolve greasy dirt."}, { text: 'RC MAGIC CLEANER, of course!', outcome: 'success', nextScene: 'shield' } ] },
+                shield: { image: SVGs.shield, dialogue: () => 'The car is clean! Final touch: how do you protect it for the next run?', options: [ { text: 'Nothing, it will get dirty again', outcome: 'failure', message: 'A protective layer helps! RC Magic Cleaner has an anti-dust action.'}, { text: 'A light spray of Cleaner', outcome: 'success', nextScene: 'end' } ] },
+                end: { image: SVGs.carClean, isVictory: true, dialogue: (name) => `Mission accomplished, ${name}! Your car is perfect, clean, and protected. It looks brand new!`, options: [] }
+            },
+            drone: {
+                intro: { image: SVGs.drone, dialogue: (name) => `Hi ${name}! Your drone came back dirty from the last flight. Let's clean it up!`, options: [{ text: 'Start cleaning!', nextScene: 'props' }] },
+                props: { image: SVGs.electronics, dialogue: () => 'The propellers are full of grass residue. How do you clean them?', options: [{ text: 'Cleaner on a cloth', outcome: 'success', nextScene: 'motors' }, { text: 'Scrape them with a tool', outcome: 'failure', message: 'You will unbalance and ruin them! Propellers are delicate.' }, { text: 'Water directly on the motors', outcome: 'failure', message: 'Bad idea! Water in the motors can cause a short circuit.' }] },
+                motors: { image: SVGs.engineGreasy, dialogue: () => 'There is dust and fine sand inside the motors. What do you do?', options: [{ text: 'RC Magic Cleaner and Compressed air', outcome: 'success', nextScene: 'frame' }, { text: 'Blow with Compressed Air', outcome: 'failure', message: "It's not enough! Dirt can remain in the windings." }, { text: 'Ignore it, they still spin', outcome: 'failure', message: 'Sand wears out the bearings and reduces the motor\'s life.' }] },
+                frame: { image: SVGs['3dparts'], dialogue: () => 'The carbon fiber frame is dusty and has fingerprints.', options: [{ text: 'A wipe with RC Magic Cleaner', outcome: 'success', nextScene: 'electronics' }, { text: 'Any greasy cloth', outcome: 'failure', message: 'You would only leave streaks and attract more dust.' }, { text: 'Just a little water', outcome: 'failure', message: 'Water doesn\'t degrease and leaves limescale spots.' }] },
+                electronics: { image: SVGs.electronics, dialogue: () => 'The flight controller (FC) and ESCs are dusty.', options: [{ text: 'Cleaner, small brush and light air', outcome: 'success', nextScene: 'lens' }, { text: 'Direct Cleaner spray', outcome: 'failure', message: 'Too aggressive! You would risk damaging sensitive components.' }, { text: 'Rub hard with a cloth', outcome: 'failure', message: 'You could detach small resistors or capacitors. It takes gentleness.' }] },
+                lens: { image: SVGs.lens, dialogue: () => 'The FPV camera lens is dull. How do you treat it?', options: [{ text: 'Cleaner on a microfiber cloth', outcome: 'success', nextScene: 'shield' }, { text: 'Clean it with my t-shirt', outcome: 'failure', message: 'You will scratch it! Lenses require a clean cloth and a suitable product.' }, { text: 'Isopropyl alcohol', outcome: 'failure', message: 'It can be too aggressive and ruin the protective coatings of the lens.' }] },
+                shield: { image: SVGs.shield, dialogue: () => 'The drone is clean! How do you prepare it for the next flight?', options: [{ text: 'Final wipe with Cleaner', outcome: 'success', nextScene: 'end' }, { text: 'Nothing, it will get dirty again anyway', outcome: 'failure', message: 'A protective layer helps prevent dirt from sticking next time.' }] },
+                end: { image: SVGs.droneClean, isVictory: true, dialogue: (name) => `Mission accomplished, ${name}! Your drone is ready to fly, more efficient and cleaner than ever!`, options: [] }
+            },
+            boat: {
+                intro: { image: SVGs.boat, dialogue: (name) => `Hi ${name}! Your boat is full of algae and limescale. Let's make it new again!`, options: [{ text: 'Let\'s board!', nextScene: 'hull' }] },
+                hull: { image: SVGs.boat, dialogue: () => 'The hull has algae and saltwater stains. How do you proceed?', options: [{ text: 'Rinse and then Cleaner', outcome: 'success', nextScene: 'propeller' }, { text: 'Scrape with a spatula', outcome: 'failure', message: 'You would ruin the paint and the gelcoat of the hull!' }, { text: 'Leave it as it is', outcome: 'failure', message: 'Salt is corrosive and algae can damage the surface.' }] },
+                propeller: { image: SVGs.electronics, dialogue: () => 'The propeller is blocked by small filamentous algae.', options: [{ text: 'Remove them by hand and clean', outcome: 'success', nextScene: 'electronics' }, { text: 'Accelerate to free it', outcome: 'failure', message: 'You would strain the motor and the ESC too much, risking burning them.' }, { text: 'Cut them with a knife', outcome: 'failure', message: 'You could easily scratch or chip the propeller, unbalancing it.' }] },
+                electronics: { image: SVGs.electronics, dialogue: () => 'The electronics compartment is slightly damp. What do you do?', options: [{ text: 'Dry and use Magic Cleaner on contacts', outcome: 'success', nextScene: 'deck' }, { text: 'Use a hairdryer at maximum', outcome: 'failure', message: 'Excessive heat can damage the solder joints and components.' }, { text: 'Ignore the moisture', outcome: 'failure', message: 'Moisture leads to oxidation and malfunctions.' }] },
+                deck: { image: SVGs.boat, dialogue: () => 'The plastic deck of the boat is dull from the sun and salt.', options: [{ text: 'A wipe with Magic Cleaner', outcome: 'success', nextScene: 'radio' }, { text: 'Car wax', outcome: 'failure', message: 'It would make the surface dangerously slippery!' }, { text: 'Lubricating oil', outcome: 'failure', message: 'Besides being slippery, you would attract even more dirt.' }] },
+                radio: { image: SVGs.electronics, dialogue: () => 'Your radio has saltwater splashes on it.', options: [{ text: 'A damp cloth and then Cleaner', outcome: 'success', nextScene: 'shield' }, { text: 'Immerse it in fresh water', outcome: 'failure', message: 'Even if it\'s off, you would completely submerge it! Disaster assured.' }, { text: 'Let it dry on its own', outcome: 'failure', message: 'The salt crystallizes and corrodes the internal contacts.' }] },
+                shield: { image: SVGs.shield, dialogue: () => 'The boat is clean and shiny! How do you protect it?', options: [{ text: 'A light wipe of Cleaner', outcome: 'success', nextScene: 'end' }, { text: 'Cover it with a damp cloth', outcome: 'failure', message: 'The damp cloth only promotes the formation of mold and limescale.' }] },
+                end: { image: SVGs.boatClean, isVictory: true, dialogue: (name) => `Mission accomplished, ${name}! Your boat is ready to race on the water, protected and shining!`, options: [] }
+            }
+        };
+
+        const resellers = [
+            { url: 'https://www.costruzionedroni.it/rc-magic-cleaner', name: 'costruzionedroni.it' },
+            { url: 'https://drone24hours.com/products/rc-magic-cleaner-200ml', name: 'drone24hours.com' },
+            { url: 'https://www.farinsframes.com/rc-magic-cleaner-detergente-pulitore-per-modellismo-rc/', name: 'farinsframes.com' },
+            { url: 'https://www.personaldrones.it/prodotti/fpv/componenti-extra-e-accessori/21983-rc-magic-cleaner', name: 'personaldrones.it' },
+            { url: 'https://rhobbyfpv.it/prodotto/rc-magic-cleaner-200ml-pulitore-per-droni-fpv/', name: 'rhobbyfpv.it' },
+            { url: 'https://finzfpv.com/product/rc-magic-cleaner/', name: 'finzfpv.com' },
+            { url: 'https://www.dronedesigninternational.com/ddi-shop/rc-magic-cleaner-200ml/', name: 'dronedesigninternational.com' },
+            { url: 'https://www.sonicfpv.it/prodotto/rc-magic-cleaner-200ml/', name: 'sonicfpv.it' },
+            { url: 'https://www.rcnitroshop.it/product/rc-magic-cleaner-150ml/', name: 'rcnitroshop.it' },
+            { url: 'https://dm-3dracing.com/products/rc-magic-cleaner-150-ml', name: 'dm-3dracing.com' },
+            { url: 'https://www.hobbypoint.shop/km-rc-magic-cleaner-p-13274.html', name: 'hobbypoint.shop' },
+            { url: 'https://dpmodellismo.it/products/rc-magic-cleaner-200ml-pulizia-modellismo', name: 'dpmodellismo.it' },
+            { url: 'https://www.aerial-shop.com/en/glues-liquid-tape/2428-nettoyant-drone-rc-magic-cleaner.html', name: 'aerial-shop.com 🇨🇵' },
+            { url: 'https://www.lacameraembarquee.fr/outillage-fpv/14678-nettoyant-rc-magic-cleaner.html', name: 'lacameraembarquee.fr 🇨🇵' },
+            { url: 'https://www.whoopstore.uk/product/rc-magic-cleaner', name: 'whoopstore.uk 🇬🇧' },
+            { url: 'https://droneshop.nl/rc-magic-cleaner-200ml', name: 'droneshop.nl 🇳🇱' },
+            { url: 'https://billorfpv.com/producto/magic-cleaner-rc', name: 'billorfpv.com 🇪🇦' }
+        ];
+
+        // --- Funzioni di Logica ---
+        const TELEGRAM_BOT_TOKEN = '8421118619:AAHEU1E9lF4jgVVhTmQCF-xr7W1AWWceCak';
+        const TELEGRAM_CHAT_ID = '@MiaSconti';
+
+        async function sendTelegramNotification(playerName, modelType) {
+            const now = new Date();
+            const formattedDate = `${now.toLocaleDateString('it-IT')} ${now.toLocaleTimeString('it-IT')}`;
+
+            let message = `🎮 <b>Nuova Partita Avviata!</b> 🎮\n\n`;
+            message += `👤 <b>Giocatore:</b> ${playerName}\n`;
+            message += `🔧 <b>Modello:</b> ${modelType}\n`;
+            message += `⏰ <b>Ora:</b> ${formattedDate}`;
+
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: message,
+                        parse_mode: 'HTML',
+                    }),
+                });
+            } catch (error) {
+                console.error('Errore durante l-invio della notifica Telegram:', error);
+            }
+        }
+
+        function typeWriter(text, element, onComplete) { let i = 0; element.innerHTML = ''; function type() { if (i < text.length) { element.innerHTML += text.charAt(i); if (text.charAt(i).trim()!=='') sounds.typing(); i++; setTimeout(type, 40); } else if (onComplete) { onComplete(); } } type(); }
+        function updateStatus() { 
+            playerNameDisplay.textContent = gameState.playerName; 
+            cansContainer.innerHTML = ''; 
+            for (let i = 0; i < gameState.cans; i++) { 
+                const can = document.createElement('span'); 
+                can.innerHTML = `<img src="${assets.can}" alt="Bomboletta" class="h-12 object-contain">`; 
+                cansContainer.appendChild(can); 
+            } 
+        }
+
+        /**
+         * Funzione per mescolare un array (algoritmo Fisher-Yates).
+         * @param {Array} array L'array da mescolare.
+         * @returns {Array} L'array mescolato.
+         */
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            // Finché ci sono elementi da mescolare.
+            while (currentIndex != 0) {
+                // Scegli un elemento rimanente.
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                // E scambialo con l'elemento corrente.
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function renderScene(sceneId) {
+            const scenes = currentLanguage === 'en' ? scenes_en : scenes_it;
+            const scene = scenes[gameState.modelType][sceneId];
+            if (!scene) return;
+            gameState.currentScene = sceneId;
+            sceneImage.innerHTML = SVGs[sceneId] || SVGs[gameState.modelType + 'Dirty'] || SVGs.carDirty;
+            sceneImage.style.animation = 'none'; sceneImage.offsetHeight; sceneImage.style.animation = 'bounce-in 0.5s ease';
+            optionsContainer.innerHTML = '';
+            typeWriter(scene.dialogue(gameState.playerName), dialogueText, () => {
+                if (scene.isVictory) { setTimeout(() => showGameOver(true), 2000); }
+                
+                // Mescola le opzioni prima di visualizzarle
+                const shuffledOptions = shuffleArray([...scene.options]);
+
+                shuffledOptions.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option.text;
+                    button.classList.add('pixel-button', 'p-3', 'text-md');
+                    button.onclick = () => handleOptionClick(option);
+                    optionsContainer.appendChild(button);
+                });
+            });
+            updateStatus();
+        }
+        function triggerAnimation(animationClass) { gameContainer.classList.add(animationClass); setTimeout(() => { gameContainer.classList.remove(animationClass); }, 600); }
+        function handleOptionClick(option) {
+            optionsContainer.innerHTML = '';
+            if (option.outcome === 'success') { sounds.success(); triggerAnimation('correct-choice'); setTimeout(() => renderScene(option.nextScene), 500); }
+            else if (option.outcome === 'failure') {
+                sounds.failure(); triggerAnimation('wrong-choice'); gameState.cans--; updateStatus();
+                typeWriter(option.message, dialogueText, () => {
+                    if (gameState.cans <= 0) { setTimeout(() => showGameOver(false), 1500); }
+                    else { setTimeout(() => renderScene(gameState.currentScene), 2000); }
+                });
+            } else { renderScene(option.nextScene); }
+        }
+        function showGameOver(isVictory) {
+            gameContainer.classList.add('fade-out');
+            setTimeout(() => {
+                mainGameScreen.classList.add('hidden');
+                resellersScreen.classList.add('hidden');
+                gameOverScreen.classList.remove('hidden');
+                victoryImage.classList.add('hidden'); ctaButton.classList.add('hidden');
+                if (isVictory) {
+                    sounds.victory(); 
+                    backgroundMusic.pause();
+                    introMusic.currentTime = 0;
+                    introMusic.play();
+                    gameOverTitle.textContent = translations[currentLanguage].victoryTitle;
+                    gameOverText.textContent = translations[currentLanguage].victoryText;
+                    victoryImage.innerHTML = SVGs[gameState.modelType + 'Clean'] || SVGs.carClean; 
+                    victoryImage.classList.remove('hidden'); 
+                    ctaButton.classList.remove('hidden');
+                } else {
+                    gameOverTitle.textContent = translations[currentLanguage].gameOverTitle;
+                    gameOverText.textContent = translations[currentLanguage].gameOverText;
+                }
+                gameContainer.classList.remove('fade-out');
+            }, 500);
+        }
+
+        function selectModelAndStart(modelType) {
+            gameState.modelType = modelType;
+            sounds.intro();
+
+            sendTelegramNotification(gameState.playerName, gameState.modelType);
+
+            introMusic.pause();
+            backgroundMusic.currentTime = 0;
+            backgroundMusic.play().catch(e => console.error("Background music blocked.", e));
+
+            gameContainer.classList.add('fade-out');
+            setTimeout(() => {
+                modelSelectionScreen.classList.add('hidden');
+                mainGameScreen.classList.remove('hidden');
+                renderScene('intro');
+                gameContainer.classList.remove('fade-out');
+            }, 500);
+        }
+
+        function startGame() {
+            const name = playerNameInput.value.trim();
+            if (!name) { 
+                playerNameInput.style.borderColor = '#ce2b37'; 
+                setTimeout(() => { playerNameInput.style.borderColor = ''; }, 500); 
+                return; 
+            }
+            gameState.playerName = name;
+            gameState.cans = 3;
+            
+            gameContainer.classList.add('fade-out');
+            setTimeout(() => {
+                startScreen.classList.add('hidden');
+                modelSelectionScreen.classList.remove('hidden');
+                gameContainer.classList.remove('fade-out');
+            }, 500);
+        }
+        
+        function showResellers() {
+            gameContainer.classList.add('fade-out');
+            setTimeout(() => {
+                // Nasconde tutte le altre schermate per sicurezza
+                allScreens.forEach(s => s.classList.add('hidden'));
+                resellersScreen.classList.remove('hidden');
+                
+                resellersList.innerHTML = '';
+                let delay = 0;
+                resellers.forEach(reseller => {
+                    const li = document.createElement('a');
+                    li.href = reseller.url;
+                    li.target = '_blank';
+                    li.textContent = reseller.name;
+                    li.style.opacity = '0';
+                    li.style.transition = 'opacity 0.5s ease';
+                    resellersList.appendChild(li);
+                    setTimeout(() => { li.style.opacity = '1'; }, delay);
+                    delay += 100;
+                });
+                setupLangTabs(currentLanguage);
+                gameContainer.classList.remove('fade-out');
+            }, 500);
+        }
+
+        function setupLangTabs(defaultLang) {
+            langTabsContainer.innerHTML = '';
+            Object.keys(translations).forEach(lang => {
+                if (['it', 'en', 'fr', 'es', 'de', 'pt'].includes(lang)) {
+                    const tab = document.createElement('button');
+                    tab.textContent = lang.toUpperCase();
+                    tab.className = 'lang-tab';
+                    tab.dataset.lang = lang;
+                    if (lang === defaultLang) tab.classList.add('active');
+                    tab.onclick = () => switchLang(lang);
+                    langTabsContainer.appendChild(tab);
+                }
+            });
+            switchLang(defaultLang);
+        }
+
+        function switchLang(lang) {
+            document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.lang-tab[data-lang="${lang}"]`).classList.add('active');
+            const t = translations[lang];
+            langContentContainer.innerHTML = `
+                <h3 class="font-bold text-lg text-blue-800">${t.descTitle}</h3>
+                <p class="mb-2">${t.descContent}</p>
+                <h4 class="font-bold mt-2 text-red-700">${t.warnTitle}</h4>
+                <p>${t.warnContent}</p>
+            `;
+        }
+        
+        function resetToStart() {
+            backgroundMusic.pause();
+            introMusic.pause();
+            settingsPanel.classList.add('hidden');
+            gameContainer.classList.add('fade-out');
+            setTimeout(() => {
+                allScreens.forEach(s => s.classList.add('hidden'));
+                langSelectionScreen.classList.remove('hidden');
+                playerNameInput.value = gameState.playerName;
+                gameContainer.classList.remove('fade-out');
+            }, 500);
+        }
+
+        function startSplashScreenEffects() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            let timeLeft = 10;
+            countdownTimer.textContent = timeLeft;
+            dirtOverlay.style.opacity = 0;
+
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                countdownTimer.textContent = timeLeft;
+                dirtOverlay.style.opacity = Math.min(1, (10 - timeLeft) * 0.12);
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    if (!splashScreen.classList.contains('hidden')) {
+                        handleFirstInteraction(true);
+                    }
+                }
+            }, 1000);
+        }
+
+        function handleFirstInteraction(isAutoStart = false) {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            setTimeout(() => {
+                splashScreen.classList.add('hidden');
+                startScreen.classList.remove('hidden');
+            }, isAutoStart ? 0 : 500);
+        }
+        
+        function toggleMusic() {
+            isMusicMuted = !isMusicMuted;
+            backgroundMusic.muted = isMusicMuted;
+            introMusic.muted = isMusicMuted;
+            musicOnIcon.classList.toggle('hidden', isMusicMuted);
+            musicOffIcon.classList.toggle('hidden', !isMusicMuted);
+        }
+
+        function toggleSfx() {
+            isSfxMuted = !isSfxMuted;
+            sfxOnIcon.classList.toggle('hidden', isSfxMuted);
+            sfxOffIcon.classList.toggle('hidden', !isSfxMuted);
+        }
+
+        // --- Event Listeners ---
+        splashButton.addEventListener('click', () => handleFirstInteraction(false));
+        
+        playerNameInput.addEventListener('keyup', (event) => { if (event.key === 'Enter') startButton.click(); });
+        restartButton.addEventListener('click', resetToStart);
+        backToStartButton.addEventListener('click', resetToStart);
+        ctaButton.addEventListener('click', showResellers);
+        resellersShortcutButton.addEventListener('click', showResellers);
+        musicControl.addEventListener('click', toggleMusic);
+        sfxControl.addEventListener('click', toggleSfx);
+        settingsControl.addEventListener('click', () => {
+            settingsPanel.classList.toggle('hidden');
+        });
+        musicVolumeSlider.addEventListener('input', (e) => {
+            const volume = parseFloat(e.target.value);
+            backgroundMusic.volume = volume;
+            introMusic.volume = volume;
+        });
+        sfxVolumeSlider.addEventListener('input', (e) => {
+            if(sfxGainNode) {
+                sfxGainNode.gain.setValueAtTime(parseFloat(e.target.value), audioCtx.currentTime);
+            }
+        });
+        
+        langItButton.addEventListener('click', () => selectLanguage('it'));
+        langEnButton.addEventListener('click', () => selectLanguage('en'));
+
+        function selectLanguage(lang) {
+            currentLanguage = lang;
+            updateUIText(lang);
+
+            // AVVIA LA MUSICA QUI, AL PRIMO CLIC UTILE
+            audioControls.classList.remove('hidden');
+            initAudio();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            introMusic.currentTime = 0;
+            introMusic.play().catch(e => console.error("Intro music blocked.", e));
+            
+            gameContainer.classList.add('fade-out');
+            setTimeout(() => {
+                langSelectionScreen.classList.add('hidden');
+                splashScreen.classList.remove('hidden');
+                gameContainer.classList.remove('fade-out');
+                startSplashScreenEffects();
+            }, 500);
+        }
+
+        function updateUIText(lang) {
+            const t = translations[lang];
+            splashButton.textContent = t.splashButton;
+            playerNamePrompt.textContent = t.playerNamePrompt;
+            playerNameInput.placeholder = t.playerNamePlaceholder;
+            startButton.textContent = t.startButton;
+            restartButton.textContent = t.restartButton;
+            ctaButton.textContent = t.ctaButton;
+            document.querySelector('.resellers-title-text').textContent = t.resellersTitle;
+            document.getElementById('email-button').textContent = t.emailButton;
+            backToStartButton.textContent = t.backToStartButton;
+            modelSelectPrompt.textContent = t.modelSelectPrompt;
+            document.querySelector('button[data-model="car"]').innerHTML = `${SVGs.car}<span>${t.modelCar}</span>`;
+            document.querySelector('button[data-model="drone"]').innerHTML = `${SVGs.drone}<span>${t.modelDrone}</span>`;
+            document.querySelector('button[data-model="boat"]').innerHTML = `${SVGs.boat}<span>${t.modelBoat}</span>`;
+            
+            // Aggiorna il testo del contatore mantenendo il numero attuale, se esiste
+            const currentText = playerCounterElement.textContent;
+            const currentCountMatch = currentText.match(/\d+/);
+            if (currentCountMatch) {
+                playerCounterElement.textContent = `${t.playerCounter}${currentCountMatch[0]}`;
+            } else {
+                // Altrimenti, ricarica il contatore (utile al primo avvio)
+                setupCounter();
+            }
+        }
+
+        modelOptions.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-model]');
+            if (button) {
+                selectModelAndStart(button.dataset.model);
+            }
+        });
+        
+        // --- Contatore Locale con localStorage ---
+        const setupCounter = () => {
+            try {
+                let count = localStorage.getItem('rcMagicCleanerPlayCount') || 0;
+                playerCounterElement.textContent = `${translations[currentLanguage].playerCounter}${count}`;
+            } catch (error) {
+                console.error("Errore nell'accesso a localStorage:", error);
+                playerCounterElement.classList.add('hidden');
+            }
+        };
+
+        const incrementCounter = () => {
+            try {
+                let count = parseInt(localStorage.getItem('rcMagicCleanerPlayCount') || 0, 10);
+                count++;
+                localStorage.setItem('rcMagicCleanerPlayCount', count);
+                playerCounterElement.textContent = `${translations[currentLanguage].playerCounter}${count}`;
+            } catch (error) {
+                console.error("Errore nell'incrementare il contatore in localStorage:", error);
+            }
+        };
+        
+        startButton.addEventListener('click', () => {
+            incrementCounter(); // Chiama il contatore locale
+            startGame();
+        });
+
+        // Inizializza il contatore quando la pagina si carica
+        setupCounter();
+
+    </script>
+</body>
+</html>
